@@ -1,0 +1,98 @@
+# --- Python ---# --- Python ---
+
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+venv.bak/
+*.egg-info/
+*.egg
+dist/
+build/
+.tox/
+.nox/
+.coverage*
+.pytest_cache/
+.mypy_cache/
+.cache/
+htmlcov/
+db.sqlite3
+db.sqlite3-journal
+instance/
+.webassets-cache
+.scrapy/
+docs/_build/
+target/
+.ipynb_checkpoints/
+profile_default/
+ipython_config.py
+.python-version
+Pipfile.lock
+poetry.lock
+.spyderproject
+.spyproject
+.ropeproject
+site/
+local_settings.py
+*.mo
+*.log
+
+# Node.js / Next.js
+node_modules/
+frontend/node_modules/
+.next/
+frontend/.next/
+out/
+frontend/out/
+dist/
+frontend/dist/
+build/
+frontend/build/
+.turbo/
+frontend/.turbo/
+
+# Ambiente
+.env
+.env.*
+!.env.example
+
+# Logs
+pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDEs e editores
+.vscode/
+.idea/
+*.iml
+
+# SO
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# Mac
+.AppleDouble
+.LSOverride
+Icon\r\n
+
+# Diversos
+*.log
+*.iml*.iml
+
+
+
+# Misc# Misc
+
+*.log*.log
+
