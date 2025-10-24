@@ -17,8 +17,7 @@ import random
 import time
 import os
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
-from playwright.async_api import async_playwright
-from newsletter_manager import newsletter_manager
+from playwright.async_api import async_playwright 
 from progress_manager import progress_manager, TaskStatus
 
 
@@ -1180,10 +1179,10 @@ async def main():
             BotLogger.info(f"📧 Modo comando: {len(newsletter_urls)} URLs via argumentos")
             BotLogger.info(f"📬 Emails alvo: {emails}")
         else:
-            # Usa newsletter_manager para obter URLs
-            newsletter_urls = newsletter_manager.get_all()
+            # Modo standalone: sem newsletter_manager, apenas exemplo vazio
+            newsletter_urls = []
             emails = ["test@example.com"]  # Email padrão para debug
-            BotLogger.info(f"📧 Modo standalone: {len(newsletter_urls)} URLs do newsletter_manager")
+            BotLogger.warning("Modo standalone: newsletter_manager removido. Nenhuma URL carregada.")
             BotLogger.info(f"📬 Emails alvo: {emails}")
 
         if not newsletter_urls:

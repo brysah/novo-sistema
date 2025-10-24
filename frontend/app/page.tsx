@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { toast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -11,9 +12,8 @@ import { AlertCircle, Trash2, Plus, Play, Square, RotateCcw, Zap, Turtle, Settin
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 interface Newsletter {
-  id: string
-  name: string
   url: string
+  name?: string
 }
 
 interface ProgressItem {
@@ -60,18 +60,18 @@ export default function Home() {
 
   const loadNewsletters = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/newsletters`)
+      const response = await fetch(`${API_BASE_URL}/newsletter/urls`)
       if (response.ok) {
         const data = await response.json()
-        const newsletterList: Newsletter[] = data.newsletters.map((url: string, index: number) => ({
-          id: (index + 1).toString(),
-          name: new URL(url).hostname.replace('www.', ''),
-          url: url
+        // O backend retorna { urls: [ ... ] }
+        const newsletterList: Newsletter[] = data.urls.map((url: string) => ({
+          url,
+          name: url ? new URL(url).hostname.replace('www.', '') : ""
         }))
         setNewsletters(newsletterList)
       }
     } catch (error) {
-      console.error("Error loading newsletters:", error)
+      console.error("Erro ao carregar newsletters:", error)
     }
   }
 
@@ -104,53 +104,72 @@ export default function Home() {
   }
 
   const addNewsletter = async () => {
-    if (!newNewsletterUrl.trim()) return
-    
+    if (!newNewsletterUrl.trim()) {
+      toast({
+        title: "URL inválida",
+        description: "Digite uma URL de newsletter válida.",
+        variant: "destructive"
+      })
+      return
+    }
+    // Validação simples de URL
     try {
-      const response = await fetch(`${API_BASE_URL}/newsletters`, {
+      new URL(newNewsletterUrl.trim())
+    } catch {
+      toast({
+        title: "URL inválida",
+        description: "Digite uma URL de newsletter válida.",
+        variant: "destructive"
+      })
+      return
+    }
+    const updatedUrls = [...newsletters.map(n => n.url), newNewsletterUrl.trim()]
+    try {
+      const response = await fetch(`${API_BASE_URL}/newsletter/urls`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          url: newNewsletterUrl
-        })
+        body: JSON.stringify({ urls: updatedUrls })
       })
-      
       if (response.ok) {
-        // Reload newsletters from backend
         await loadNewsletters()
         setNewNewsletterName("")
         setNewNewsletterUrl("")
       } else {
-        const error = await response.json()
-        alert(error.detail || "Failed to add newsletter")
+        toast({
+          title: "Não foi possível adicionar",
+          description: "A URL não foi aceita pelo backend.",
+          variant: "destructive"
+        })
       }
     } catch (error) {
-      console.error("Error adding newsletter:", error)
-      alert("Failed to add newsletter")
+      toast({
+        title: "Erro ao adicionar newsletter",
+        description: "Ocorreu um erro ao tentar adicionar a URL.",
+        variant: "destructive"
+      })
     }
   }
 
-  const removeNewsletter = async (id: string) => {
-    const newsletter = newsletters.find(n => n.id === id)
-    if (!newsletter) return
-    
+  const removeNewsletter = async (url: string) => {
+    // Remove a URL da lista local e envia a lista inteira para o backend
+    const updatedUrls = newsletters.map(n => n.url).filter(u => u !== url)
     try {
-      const response = await fetch(`${API_BASE_URL}/newsletters?url=${encodeURIComponent(newsletter.url)}`, {
-        method: 'DELETE'
+      const response = await fetch(`${API_BASE_URL}/newsletter/urls`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ urls: updatedUrls })
       })
-      
       if (response.ok) {
-        // Reload newsletters from backend
         await loadNewsletters()
       } else {
-        const error = await response.json()
-        alert(error.detail || "Failed to remove newsletter")
+        alert("Falha ao remover newsletter")
       }
     } catch (error) {
-      console.error("Error removing newsletter:", error)
-      alert("Failed to remove newsletter")
+      alert("Erro ao remover newsletter")
     }
   }
 
@@ -161,7 +180,7 @@ export default function Home() {
       .filter((e) => e && e.includes("@"))
 
     if (!emailList.length || !newsletters.length) {
-      alert("Please add at least one email and one newsletter")
+      alert("Adicione pelo menos um email e uma newsletter")
       return
     }
 
@@ -256,7 +275,7 @@ export default function Home() {
   const successCount = progress.filter((p) => p.status === "ok").length
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+  <div className="min-h-screen bg-linear-to-br from-slate-50 to-slate-100 p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -423,13 +442,13 @@ export default function Home() {
                 ) : (
                   <div className="space-y-2 max-h-96 overflow-y-auto">
                     {newsletters.map((newsletter) => (
-                      <div key={newsletter.id} className="flex items-center justify-between bg-white p-4 rounded-lg border border-slate-200 hover:shadow-sm transition-shadow">
+                      <div key={newsletter.url} className="flex items-center justify-between bg-white p-4 rounded-lg border border-slate-200 hover:shadow-sm transition-shadow">
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-slate-900 truncate">{newsletter.name}</p>
                           <p className="text-xs text-slate-500 truncate">{newsletter.url}</p>
                         </div>
                         <button
-                          onClick={() => removeNewsletter(newsletter.id)}
+                          onClick={() => removeNewsletter(newsletter.url)}
                           className="ml-3 p-2 hover:bg-red-50 rounded transition-colors text-red-600"
                           disabled={isRunning}
                           title="Remover newsletter"

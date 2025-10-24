@@ -1,11 +1,11 @@
-
+import json
+NEWSLETTER_URLS_FILE = "newsletter_urls.json"
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
 from models import ProgressTask, TaskStatus
 from progress_manager import progress_manager
-from newsletter_manager import newsletter_manager
 import subprocess
 import threading
 import sys
@@ -14,9 +14,9 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],  # Específico para Next.js
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "DELETE", "PUT", "PATCH", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -24,6 +24,22 @@ class StartRequest(BaseModel):
     emails: List[str]
     urls: List[str]
     speed: str = "slow"
+
+@app.get("/newsletter/urls")
+def get_newsletter_urls():
+    try:
+        with open(NEWSLETTER_URLS_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return {"urls": data.get("urls", [])}
+    except FileNotFoundError:
+        return {"urls": []}
+
+@app.post("/newsletter/urls")
+def save_newsletter_urls(payload: dict):
+    urls = payload.get("urls", [])
+    with open(NEWSLETTER_URLS_FILE, "w", encoding="utf-8") as f:
+        json.dump({"urls": urls}, f, indent=2, ensure_ascii=False)
+    return {"status": "saved", "count": len(urls)}    
 
 def load_newsletter_urls():
         import json
@@ -89,20 +105,7 @@ def update_task(task_id: str, status: TaskStatus, message: str = None):
     progress_manager.update_task(task_id, status, message)
     return {"status": "updated"}
 
-# Newsletter endpoints
-@app.get("/newsletters")
-def list_newsletters():
-    return {"newsletters": newsletter_manager.get_all()}
 
-@app.post("/newsletters")
-def add_newsletter(url: str):
-    newsletter_manager.add(url)
-    return {"status": "added", "url": url}
-
-@app.delete("/newsletters")
-def remove_newsletter(url: str = Query(...)):
-    newsletter_manager.remove(url)
-    return {"status": "removed", "url": url}
 
 
 if __name__ == "__main__":
