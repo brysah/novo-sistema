@@ -506,48 +506,44 @@ class HumanizedActions:
                         )
                         await asyncio.sleep(0.1)
                 
-                # 5. Tenta vários tipos de clique
+                # 5. Tenta vários tipos de clique, agora envolvendo o clique no expect_navigation
                 click_success = False
-                
-                # Tentativa 1: Clique normal
+                old_url = page.url
                 try:
-                    await element.click(timeout=5000)
-                    click_success = True
-                    BotLogger.debug("Clique normal bem-sucedido")
-                except Exception as e:
-                    BotLogger.debug(f"Clique normal falhou: {str(e)[:50]}")
-                
-                # Tentativa 2: Clique forçado
-                if not click_success:
-                    try:
-                        await element.click(force=True, timeout=5000)
+                    async with page.expect_navigation(timeout=8000):
+                        try:
+                            await element.click(timeout=5000)
+                            click_success = True
+                            BotLogger.debug("Clique normal bem-sucedido")
+                        except Exception as e:
+                            BotLogger.debug(f"Clique normal falhou: {str(e)[:50]}")
+                            # Tentativa 2: Clique forçado
+                            try:
+                                await element.click(force=True, timeout=5000)
+                                click_success = True
+                                BotLogger.debug("Clique forçado bem-sucedido")
+                            except Exception as e2:
+                                BotLogger.debug(f"Clique forçado falhou: {str(e2)[:50]}")
+                                # Tentativa 3: Clique via JavaScript
+                                try:
+                                    await element.evaluate("element => element.click()")
+                                    click_success = True
+                                    BotLogger.debug("Clique via JavaScript bem-sucedido")
+                                except Exception as e3:
+                                    BotLogger.debug(f"Clique via JavaScript falhou: {str(e3)[:50]}")
+                    if click_success:
+                        BotLogger.debug("URL mudou após clique")
+                except Exception:
+                    if page.url != old_url:
+                        BotLogger.debug("URL mudou mesmo sem navegação explícita")
                         click_success = True
-                        BotLogger.debug("Clique forçado bem-sucedido")
-                    except Exception as e:
-                        BotLogger.debug(f"Clique forçado falhou: {str(e)[:50]}")
-                
-                # Tentativa 3: Clique via JavaScript
-                if not click_success:
-                    try:
-                        await element.evaluate("element => element.click()")
-                        click_success = True
-                        BotLogger.debug("Clique via JavaScript bem-sucedido")
-                    except Exception as e:
-                        BotLogger.debug(f"Clique via JavaScript falhou: {str(e)[:50]}")
-                
+                    else:
+                        BotLogger.debug("Timeout esperando mudança de URL - continuando...")
+                # 6. Pausa pós-clique estendida para aguardar carregamentos
+                post_click_delay = get_human_delay(DELAYS["after_click"]) / 1000
+                BotLogger.debug(f"Aguardando {post_click_delay:.1f}s após clique para carregamento...")
+                await asyncio.sleep(post_click_delay)
                 if click_success:
-                    # 6. Pausa pós-clique estendida para aguardar carregamentos
-                    post_click_delay = get_human_delay(DELAYS["after_click"]) / 1000
-                    BotLogger.debug(f"Aguardando {post_click_delay:.1f}s após clique para carregamento...")
-                    await asyncio.sleep(post_click_delay)
-                    
-                    # 7. Aguarda possíveis carregamentos da página
-                    try:
-                        await page.wait_for_load_state("networkidle", timeout=8000)
-                        BotLogger.debug("Página estabilizada após clique")
-                    except:
-                        BotLogger.debug("Timeout de networkidle - continuando...")
-                    
                     BotLogger.success("Clique realizado com sucesso!")
                     return True
                 else:
@@ -566,11 +562,14 @@ class HumanizedActions:
         """Aguarda a página estabilizar com comportamento humano estendido."""
         delay = delay or DELAYS["page_stabilize"]
         
-        # Aguarda carregamento técnico
-        await page.wait_for_load_state("domcontentloaded", timeout=TIMEOUTS["page_load"])
-        await page.wait_for_load_state("networkidle", timeout=TIMEOUTS["stability"])
+        # Aguarda carregamento técnico básico - sem networkidle para evitar timeouts
+        try:
+            await page.wait_for_load_state("domcontentloaded", timeout=TIMEOUTS["page_load"])
+            BotLogger.debug("DOM carregado com sucesso")
+        except Exception as e:
+            BotLogger.debug(f"Aviso: DOM timeout, mas continuando: {str(e)[:50]}")
         
-        # Aguarda estação adicional para SPAs e carregamentos assíncronos
+        # Aguarda estabilização simples sem depender de networkidle
         stabilization_time = get_human_delay(delay) / 1000
         BotLogger.debug(f"Aguardando estabilização da página por {stabilization_time:.1f}s...")
         
@@ -860,49 +859,45 @@ class GenericFlowExecutor:
                     all_buttons = await page.locator("button:visible, input[type='submit']:visible").count()
                     BotLogger.debug(f"Total de botões visíveis na página: {all_buttons}")
                     
-                    # Tenta cada seletor de submit
+                    # Tenta cada seletor de submit, mas PARA no primeiro clique bem-sucedido
+                    submit_clicked = False
                     for submit_selector in strategy["submit_selectors"]:
                         button_count = await page.locator(submit_selector).count()
                         if button_count > 0:
                             BotLogger.info(f"Botão submit encontrado: {submit_selector} (quantidade: {button_count})")
-                            
                             if await HumanizedActions.safe_click(page, submit_selector):
                                 BotLogger.success(f"Clique bem-sucedido em: {submit_selector}")
                                 await HumanizedActions.wait_for_stability(page)
-                                
-                                # Fecha possíveis modals
                                 await ModalHandler.close_modals(page)
-                                
                                 return await SuccessValidator.verify_subscription(page)
                             else:
                                 BotLogger.warning(f"Falha ao clicar em: {submit_selector}")
                         else:
                             BotLogger.debug(f"Botão não encontrado: {submit_selector}")
-                    
                     # Se nenhum botão específico funcionou, tenta botão genérico
-                    BotLogger.warning("Tentando estratégia de botão genérico...")
-                    generic_button_selectors = [
-                        "button:visible",
-                        "input[type='submit']:visible",
-                        "[role='button']:visible"
-                    ]
-                    
-                    for generic_selector in generic_button_selectors:
-                        buttons = await page.locator(generic_selector).all()
-                        for i, button in enumerate(buttons):
-                            try:
-                                text = await button.inner_text()
-                                if any(keyword in text.lower() for keyword in ['subscribe', 'subscrever', 'assinar', 'sign']):
-                                    BotLogger.info(f"Tentando botão genérico {i+1} com texto: '{text}'")
-                                    if await button.is_visible() and await button.is_enabled():
-                                        await button.click()
-                                        BotLogger.success(f"Clique genérico bem-sucedido!")
-                                        await HumanizedActions.wait_for_stability(page)
-                                        await ModalHandler.close_modals(page)
-                                        return await SuccessValidator.verify_subscription(page)
-                            except Exception as e:
-                                BotLogger.debug(f"Erro ao tentar botão genérico {i+1}: {str(e)[:50]}")
-                                continue
+                    if not submit_clicked:
+                        BotLogger.warning("Tentando estratégia de botão genérico...")
+                        generic_button_selectors = [
+                            "button:visible",
+                            "input[type='submit']:visible",
+                            "[role='button']:visible"
+                        ]
+                        for generic_selector in generic_button_selectors:
+                            buttons = await page.locator(generic_selector).all()
+                            for i, button in enumerate(buttons):
+                                try:
+                                    text = await button.inner_text()
+                                    if any(keyword in text.lower() for keyword in ['subscribe', 'subscrever', 'assinar', 'sign']):
+                                        BotLogger.info(f"Tentando botão genérico {i+1} com texto: '{text}'")
+                                        if await button.is_visible() and await button.is_enabled():
+                                            await button.click()
+                                            BotLogger.success(f"Clique genérico bem-sucedido!")
+                                            await HumanizedActions.wait_for_stability(page)
+                                            await ModalHandler.close_modals(page)
+                                            return await SuccessValidator.verify_subscription(page)
+                                except Exception as e:
+                                    BotLogger.debug(f"Erro ao tentar botão genérico {i+1}: {str(e)[:50]}")
+                                    continue
                 else:
                     BotLogger.error(f"Falha ao preencher campo: {email_selector}")
         
@@ -1060,6 +1055,8 @@ class NewsletterAutomationEngine:
     @staticmethod
     async def subscribe_to_newsletter(page, url, email):
         """Executa inscrição inteligente em newsletter com tratamento robusto."""
+        from progress_manager import progress_manager
+        
         BotLogger.info(f"Processando URL: {url}")
         BotLogger.backend_status("processing", url)
         
@@ -1067,6 +1064,11 @@ class NewsletterAutomationEngine:
         retry_count = 0
         
         while retry_count < max_retries:
+            # Checa parada antes de cada tentativa
+            if progress_manager.is_stopped():
+                BotLogger.warning("Parada detectada durante navegação")
+                return False
+            
             try:
                 # === NAVEGAÇÃO HUMANIZADA ===
                 
@@ -1088,6 +1090,11 @@ class NewsletterAutomationEngine:
                 # 3. Comportamento humano pós-carregamento
                 await HumanizedActions.wait_for_stability(page)
                 
+                # Checa parada após carregamento
+                if progress_manager.is_stopped():
+                    BotLogger.warning("Parada detectada após carregamento")
+                    return False
+                
                 # 4. Simula "leitura" da página antes de interagir
                 await StealthEvasion.simulate_human_reading(page)
                 
@@ -1104,6 +1111,10 @@ class NewsletterAutomationEngine:
                 await asyncio.sleep(3)
         
         try:
+            # Checa parada antes de iniciar fases
+            if progress_manager.is_stopped():
+                BotLogger.warning("Parada detectada antes de processar")
+                return False
             
             # FASE 1: Detecta padrões do Substack
             BotLogger.info("FASE 1: Detectando padrões Substack...")
@@ -1124,11 +1135,21 @@ class NewsletterAutomationEngine:
             # FASE 2: Tenta estratégias genéricas
             BotLogger.info("FASE 2: Tentando estratégias genéricas...")
             
+            # Checa parada antes de FASE 2
+            if progress_manager.is_stopped():
+                BotLogger.warning("Parada detectada antes de FASE 2")
+                return False
+            
             generic_strategy = await GenericPatternDetector.find_best_strategy(page)
             if await GenericFlowExecutor.execute_strategy(page, email, generic_strategy):
                 BotLogger.success(f"✅ Sucesso via estratégia genérica em: {url}")
                 BotLogger.backend_status("success", url)
                 return True
+            
+            # Checa parada antes de FASE 3
+            if progress_manager.is_stopped():
+                BotLogger.warning("Parada detectada antes de FASE 3")
+                return False
             
             # FASE 3: Fallback - fecha modals e tenta novamente
             BotLogger.info("FASE 3: Executando estratégia fallback...")
@@ -1197,6 +1218,10 @@ async def main():
         idx = 0
         for email in emails:
             for url in newsletter_urls:
+                if progress_manager.is_stopped():
+                    BotLogger.warning("Execução interrompida por solicitação externa (flag ou variável)")
+                    BotLogger.backend_status("complete", "", f"{success_count}/{total_count} sucessos (interrompido)")
+                    return
                 idx += 1
                 BotLogger.info(f"\n🌐 PROCESSANDO {idx}/{total_count}: {email} -> {url}")
 
@@ -1284,8 +1309,9 @@ async def main():
         BotLogger.error(f"❌ Erro crítico no sistema: {error_msg}")
         BotLogger.backend_status("error", "", error_msg)
     finally:
-        # Libera o backend para nova execução
-        progress_manager.is_running = False
+        # Finaliza execução no progress_manager
+        progress_manager.finish()
+        BotLogger.info("🏁 Execução finalizada")
 
 if __name__ == "__main__":
     asyncio.run(main())

@@ -66,11 +66,10 @@ def start_automation(req: StartRequest):
     import json
     input_data = {
         "emails": req.emails,
-        "urls": req.urls,
-        "speed": req.speed
+        "urls": req.urls
     }
     with open("input_data.json", "w", encoding="utf-8") as f:
-        json.dump(input_data, f)
+        json.dump(input_data, f) 
     def run_automator():
         import runpy
         import sys
@@ -82,9 +81,10 @@ def start_automation(req: StartRequest):
 
 
 @app.post("/stop")
-def stop_automation():
-    # Não implementado: depende de controle do automator
-    progress_manager.reset()
+def stop_automation(): 
+    with open("stop.flag", "w") as f:
+        f.write("stop")
+    progress_manager.finish()
     return {"status": "stopped"}
 
 @app.post("/clear")

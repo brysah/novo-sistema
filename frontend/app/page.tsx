@@ -29,13 +29,13 @@ export default function Home() {
   const [emails, setEmails] = useState("")
   const [newsletters, setNewsletters] = useState<Newsletter[]>([])
   const [newNewsletterName, setNewNewsletterName] = useState("")
-  const [newNewsletterUrl, setNewNewsletterUrl] = useState("")
-  const [speed, setSpeed] = useState<"slow" | "fast">("slow")
+  const [newNewsletterUrl, setNewNewsletterUrl] = useState("") 
   const [isRunning, setIsRunning] = useState(false)
   const [progress, setProgress] = useState<ProgressItem[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [backendConnected, setBackendConnected] = useState(false)
   const [activeTab, setActiveTab] = useState("automation")
+  const [stopToastFired, setStopToastFired] = useState(false)
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
@@ -93,6 +93,18 @@ export default function Home() {
         if (statusResponse.ok) {
           const status = await statusResponse.json()
           if (!status.is_running && isRunning) {
+            setIsRunning(false)
+            if (pollIntervalRef.current) clearInterval(pollIntervalRef.current)
+            if (!stopToastFired) {
+              setStopToastFired(true) 
+              toast({
+                  title: "Automação parada",
+                  description: "O processo foi finalizado e você pode iniciar novamente.",
+                  variant: "default"
+                })
+            }
+          } else if (!status.is_running && !isRunning) {
+            // Garante que nunca fica travado
             setIsRunning(false)
             if (pollIntervalRef.current) clearInterval(pollIntervalRef.current)
           }
@@ -185,7 +197,7 @@ export default function Home() {
     }
 
     if (!backendConnected) {
-      alert("Backend server not connected. Make sure to run: python backend/main.py")
+      alert("Backend desconectado. Inicie o servidor Python com: python backend/main.py")
       return
     }
 
@@ -195,15 +207,14 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           emails: emailList,
-          urls: newsletters.map((n) => n.url),
-          speed: speed,
+          urls: newsletters.map((n) => n.url)
         }),
       })
 
       if (response.ok) {
         setIsRunning(true)
         setProgress([])
-
+        setStopToastFired(false)
         // Start polling for updates
         if (pollIntervalRef.current) clearInterval(pollIntervalRef.current)
         pollIntervalRef.current = setInterval(pollProgress, 1000)
@@ -218,9 +229,13 @@ export default function Home() {
 
   const stopSubscriptions = async () => {
     try {
+      toast({
+        title: "Parando automação...",
+        description: "Aguarde alguns segundos para finalizar o processo.",
+        variant: "default"
+      })
       await fetch(`${API_BASE_URL}/stop`, { method: "POST" })
-      setIsRunning(false)
-      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current)
+      // Não destrava aqui, espera polling detectar is_running: false
     } catch (error) {
       console.error("Error stopping subscriptions:", error)
     }
@@ -230,6 +245,26 @@ export default function Home() {
     setEmails("")
     setProgress([])
     setCurrentIndex(0)
+  }
+
+  const resetSystem = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/reset`, { method: "POST" })
+      if (response.ok) {
+        setIsRunning(false)
+        setProgress([])
+        setEmails("")
+        setCurrentIndex(0)
+        setStopToastFired(false)
+        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current)
+        toast({
+          title: "Sistema resetado",
+          description: "O sistema foi resetado para o estado inicial."
+        })
+      }
+    } catch (error) {
+      console.error("Error resetting system:", error)
+    }
   }
 
   const getStatusColor = (status: string) => {
@@ -257,17 +292,17 @@ export default function Home() {
       case "captcha":
         return "⚠ CAPTCHA"
       case "error":
-        return "✗ Error"
+        return "✗ Erro"
       case "http_error":
-        return "✗ HTTP Error"
+        return "✗ HTTP Erro"
       case "no_email_field":
-        return "✗ No Email Field"
+        return "✗ Sem Campo de E-mail"
       case "unknown_result":
-        return "? Unknown"
+        return "? Desconhecido"
       case "running":
-        return "⟳ Running"
+        return "⟳ Processando"
       default:
-        return "Pending"
+        return "Pendente"
     }
   }
 
@@ -280,15 +315,14 @@ export default function Home() {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
-            <h1 className="text-4xl font-bold text-slate-900">Newsletter Automation</h1>
+            <h1 className="text-4xl font-bold text-slate-900">Newsletter Automação</h1>
             <div className="flex items-center gap-2">
               <div className={`w-3 h-3 rounded-full ${backendConnected ? "bg-green-500" : "bg-red-500"}`}></div>
               <span className="text-sm text-slate-600">
-                {backendConnected ? "Backend Connected" : "Backend Disconnected"}
+                {backendConnected ? "Backend Conectado" : "Backend Disconectado"}
               </span>
             </div>
-          </div>
-          <p className="text-slate-600">Automate newsletter subscriptions with human-like behavior</p>
+          </div> 
         </div>
 
         {/* Tabs Navigation */}
@@ -310,7 +344,7 @@ export default function Home() {
 
           {/* Tab Content: Automação */}
           <TabsContent value="automation" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6">
               {/* Emails Section */}
               <Card className="p-6 border-slate-200">
                 <h2 className="text-lg font-semibold text-slate-900 mb-4">Emails</h2>
@@ -322,43 +356,10 @@ export default function Home() {
                   disabled={isRunning}
                 />
                 <p className="text-xs text-slate-500 mt-2">
-                  {emails.split("\n").filter((e) => e.trim() && e.includes("@")).length} valid emails
+                  {emails.split("\n").filter((e) => e.trim() && e.includes("@")).length} emails válidos
                 </p>
               </Card>
-
-              {/* Speed Section */}
-              <Card className="p-6 border-slate-200">
-                <h2 className="text-lg font-semibold text-slate-900 mb-4">Velocidade</h2>
-                <div className="space-y-2">
-                  <button
-                    onClick={() => setSpeed("slow")}
-                    disabled={isRunning}
-                    className={`w-full p-3 rounded-lg border-2 transition-all flex items-center justify-center gap-2 ${
-                      speed === "slow"
-                        ? "border-slate-900 bg-slate-900 text-white"
-                        : "border-slate-200 bg-white text-slate-900 hover:border-slate-300"
-                    }`}
-                  >
-                    <Turtle className="w-5 h-5" />
-                    <span className="font-medium">Lento & Seguro</span>
-                  </button>
-                  <button
-                    onClick={() => setSpeed("fast")}
-                    disabled={isRunning}
-                    className={`w-full p-3 rounded-lg border-2 transition-all flex items-center justify-center gap-2 ${
-                      speed === "fast"
-                        ? "border-slate-900 bg-slate-900 text-white"
-                        : "border-slate-200 bg-white text-slate-900 hover:border-slate-300"
-                    }`}
-                  >
-                    <Zap className="w-5 h-5" />
-                    <span className="font-medium">Rápido</span>
-                  </button>
-                </div>
-                <p className="text-xs text-slate-500 mt-3">
-                  {speed === "slow" ? "1 thread, 4-8s delays" : "2-3 threads, 1-2s delays"}
-                </p>
-              </Card>
+ 
             </div>
 
             {/* Action Buttons */}
@@ -369,7 +370,7 @@ export default function Home() {
                 className="bg-green-600 hover:bg-green-700 text-white font-semibold py-6 px-8 text-lg"
               >
                 <Play className="w-5 h-5 mr-2" />
-                Rodar Subscrições
+                Rodar Inscrições
               </Button>
               <Button
                 onClick={stopSubscriptions}
@@ -539,21 +540,7 @@ export default function Home() {
             </Card>
           </TabsContent>
         </Tabs>
-
-        {/* Info Alert */}
-        <Alert className="mt-6 border-slate-200 bg-blue-50">
-          <AlertCircle className="h-4 w-4 text-blue-600" />
-          <AlertDescription className="text-slate-700">
-            {backendConnected ? (
-              <>Backend conectado. Delays e comportamento humanizado ajudam a evitar detecção de bot.</>
-            ) : (
-              <>
-                Backend desconectado. Inicie o servidor Python com:{" "}
-                <code className="bg-blue-100 px-2 py-1 rounded">python backend/main.py</code>
-              </>
-            )}
-          </AlertDescription>
-        </Alert>
+ 
       </div>
     </div>
   )
