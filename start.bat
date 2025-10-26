@@ -5,7 +5,7 @@ REM ===============================
 REM Desativa Quick Edit Mode
 REM ===============================
 if "%1" neq "noquickedit" (
-    start "JointMotion System" cmd /k "call \"%~f0\" noquickedit"
+    start "JointMotion System" cmd /k call "%~f0" noquickedit
     exit /b
 )
 
@@ -40,7 +40,7 @@ REM ===============================
 REM Inicia backend
 REM ===============================
 echo Iniciando backend...
-start "Backend" cmd /k "cd /d \"%~dp0backend\" && %PYTHON_CMD% main.py"
+start "Backend" cmd /k "cd /d "%~dp0backend" && %PYTHON_CMD% main.py"
 
 REM Aguarda 3 segundos antes de iniciar frontend
 timeout /t 3 /nobreak >nul
@@ -49,7 +49,7 @@ REM ===============================
 REM Inicia frontend
 REM ===============================
 echo Iniciando frontend...
-start "Frontend" cmd /k "cd /d \"%~dp0frontend\" && npm run dev"
+start "Frontend" cmd /k "cd /d "%~dp0frontend" && npm run dev"
 
 echo.
 echo ===============================
