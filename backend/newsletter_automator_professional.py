@@ -1,14 +1,3 @@
-"""
-🤖 NEWSLETTER AUTOMATOR PROFISSIONAL v2.0
-Sistema avançado de automação de inscrição em newsletters com foco no Substack.
-
-Desenvolvido com estratégias profissionais de bot automation:
-- Detecção inteligente de padrões
-- Múltiplas estratégias de fallback
-- Comportamento humanizado
-- Robustez contra falhas
-"""
-
 import asyncio
 
 import sys
