@@ -10,8 +10,6 @@ from playwright.async_api import async_playwright
 from progress_manager import progress_manager, TaskStatus
 
 
-# --- CONFIGURAÇÕES PROFISSIONAIS --- #
-
 # Configurações de timeout e delay humanizados
 TIMEOUTS = {
     "page_load": 60000,      # 60s para carregamento de página
@@ -147,8 +145,6 @@ class FingerprintEvasion:
 # --- SISTEMA DE EVASÃO STEALTH AVANÇADO --- #
 
 class StealthEvasion:
-    """Sistema avançado de evasão de detecção de bot."""
-    
     @staticmethod
     async def setup_stealth_context(context):
         """Configura contexto stealth para máxima evasão."""
@@ -406,7 +402,7 @@ class HumanizedActions:
                     else:
                         BotLogger.info("🧹 Limpando campo pré-preenchido...")
                 
-                # === COMPORTAMENTO SUPER HUMANIZADO ===
+                # === COMPORTAMENTO HUMANIZADO ===
                 
                 # 1. Movimento humanizado do mouse
                 await StealthEvasion.human_mouse_movement(page, element)
@@ -548,7 +544,6 @@ class HumanizedActions:
     
     @staticmethod
     async def wait_for_stability(page, delay=None):
-        """Aguarda a página estabilizar com comportamento humano estendido."""
         delay = delay or DELAYS["page_stabilize"]
         
         # Aguarda carregamento técnico básico - sem networkidle para evitar timeouts
@@ -576,7 +571,7 @@ class HumanizedActions:
         if random.random() < 0.4:  # 40% chance
             await StealthEvasion.random_human_actions(page)
 
-# --- DETECTORES DE PADRÃO PROFISSIONAIS --- #
+# --- DETECTORES DE PADRÃO --- #
 
 class SubstackPatternDetector:
     """Detector inteligente de padrões específicos do Substack."""
@@ -766,7 +761,7 @@ class GenericPatternDetector:
         BotLogger.warning("Nenhuma estratégia genérica específica encontrada")
         return GenericPatternDetector.STRATEGIES[-1]  # Fallback para genérico
 
-# --- EXECUTORES DE FLUXO PROFISSIONAIS --- #
+# --- EXECUTORES DE FLUXO --- #
 
 class SubstackFlowExecutor:
     """Executor especializado para fluxos do Substack."""
@@ -896,7 +891,7 @@ class GenericFlowExecutor:
 # --- GERENCIADORES AUXILIARES --- #
 
 class ModalHandler:
-    """Gerenciador inteligente de modals e popups."""
+    """Gerenciador de modals e popups."""
     
     @staticmethod
     async def close_modals(page):
@@ -927,11 +922,11 @@ class ModalHandler:
         return False
 
 class SuccessValidator:
-    """Validador inteligente de sucesso de inscrição."""
+    """Validador de sucesso de inscrição."""
     
     @staticmethod
     async def verify_subscription(page):
-        """Verifica se a inscrição foi bem-sucedida com estratégias AVANÇADAS."""
+        """Verifica se a inscrição foi bem-sucedida ."""
         BotLogger.info("Verificando sucesso da inscricao com multiplas estrategias...")
         
         # Aguarda possíveis mensagens aparecerem
@@ -1169,8 +1164,8 @@ class NewsletterAutomationEngine:
 # --- FUNÇÃO PRINCIPAL --- #
 
 async def main():
-    """Função principal do sistema profissional com integração backend."""
-    BotLogger.info("🚀 Iniciando Newsletter Automator Profissional v2.0")
+    """Função principal do sistema com integração backend."""
+    BotLogger.info("🚀 Iniciando")
     BotLogger.backend_status("start")
     
 
