@@ -310,24 +310,24 @@ export default function Home() {
   const successCount = progress.filter((p) => p.status === "ok").length
 
   return (
-  <div className="min-h-screen bg-linear-to-br from-slate-50 to-slate-100 p-6">
-      <div className="max-w-6xl mx-auto">
+  <div className="min-h-screen bg-linear-to-br from-slate-50 to-slate-100 p-2 sm:p-4 md:p-6">
+    <div className="max-w-6xl mx-auto w-full">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-2">
-            <h1 className="text-4xl font-bold text-slate-900">Newsletter Automação</h1>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-2 gap-2">
+            <h1 className="text-2xl sm:text-4xl font-bold text-slate-900">Newsletter Automação</h1>
             <div className="flex items-center gap-2">
               <div className={`w-3 h-3 rounded-full ${backendConnected ? "bg-green-500" : "bg-red-500"}`}></div>
-              <span className="text-sm text-slate-600">
+              <span className="text-xs sm:text-sm text-slate-600">
                 {backendConnected ? "Backend Conectado" : "Backend Disconectado"}
               </span>
             </div>
-          </div> 
+          </div>
         </div>
 
         {/* Tabs Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 mb-6">
             <TabsTrigger value="automation" className="flex items-center gap-2">
               <Settings className="w-4 h-4" />
               Automação
@@ -346,13 +346,13 @@ export default function Home() {
           <TabsContent value="automation" className="space-y-6">
             <div className="grid grid-cols-1 gap-6">
               {/* Emails Section */}
-              <Card className="p-6 border-slate-200">
+              <Card className="p-4 sm:p-6 border-slate-200">
                 <h2 className="text-lg font-semibold text-slate-900 mb-4">Emails</h2>
                 <Textarea
-                  placeholder="Enter emails (one per line)&#10;example1@email.com&#10;example2@email.com"
+                  placeholder="Digite os emails (um por linha)"
                   value={emails}
                   onChange={(e) => setEmails(e.target.value)}
-                  className="min-h-32 resize-none"
+                  className="min-h-24 sm:min-h-32 resize-none text-sm"
                   disabled={isRunning}
                 />
                 <p className="text-xs text-slate-500 mt-2">
@@ -363,11 +363,11 @@ export default function Home() {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-4 justify-center">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 justify-center">
               <Button
                 onClick={startSubscriptions}
                 disabled={isRunning || !emails.trim() || newsletters.length === 0 || !backendConnected}
-                className="bg-green-600 hover:bg-green-700 text-white font-semibold py-6 px-8 text-lg"
+                className="bg-green-600 hover:bg-green-700 text-white font-semibold py-4 sm:py-6 px-4 sm:px-8 text-base sm:text-lg w-full sm:w-auto"
               >
                 <Play className="w-5 h-5 mr-2" />
                 Rodar Inscrições
@@ -376,7 +376,7 @@ export default function Home() {
                 onClick={stopSubscriptions}
                 disabled={!isRunning}
                 variant="outline"
-                className="border-red-300 text-red-600 hover:bg-red-50 bg-transparent py-6 px-8"
+                className="border-red-300 text-red-600 hover:bg-red-50 bg-transparent py-4 sm:py-6 px-4 sm:px-8 w-full sm:w-auto"
               >
                 <Square className="w-5 h-5 mr-2" />
                 Parar
@@ -385,7 +385,7 @@ export default function Home() {
                 onClick={clearAll} 
                 disabled={isRunning} 
                 variant="outline" 
-                className="bg-transparent py-6 px-8"
+                className="bg-transparent py-4 sm:py-6 px-4 sm:px-8 w-full sm:w-auto"
               >
                 <RotateCcw className="w-5 h-5 mr-2" />
                 Limpar
@@ -395,11 +395,11 @@ export default function Home() {
 
           {/* Tab Content: URLs */}
           <TabsContent value="urls">
-            <Card className="p-6 border-slate-200">
+            <Card className="p-4 sm:p-6 border-slate-200">
               <h2 className="text-lg font-semibold text-slate-900 mb-4">Gerenciar URLs de Newsletter</h2>
               
               {/* Add Newsletter Form */}
-              <div className="space-y-3 mb-6 p-4 bg-slate-50 rounded-lg">
+              <div className="space-y-3 mb-6 p-2 sm:p-4 bg-slate-50 rounded-lg">
                 <Input
                   placeholder="Nome da Newsletter (opcional)"
                   value={newNewsletterName}
@@ -441,7 +441,7 @@ export default function Home() {
                     <p className="text-sm">Adicione URLs para começar</p>
                   </div>
                 ) : (
-                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                  <div className="space-y-2 max-h-64 sm:max-h-96 overflow-y-auto">
                     {newsletters.map((newsletter) => (
                       <div key={newsletter.url} className="flex items-center justify-between bg-white p-4 rounded-lg border border-slate-200 hover:shadow-sm transition-shadow">
                         <div className="flex-1 min-w-0">
@@ -466,7 +466,7 @@ export default function Home() {
 
           {/* Tab Content: Progresso */}
           <TabsContent value="progress">
-            <Card className="p-6 border-slate-200">
+            <Card className="p-4 sm:p-6 border-slate-200">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-semibold text-slate-900">Progresso da Automação</h2>
                 {progress.length > 0 && (
@@ -485,7 +485,7 @@ export default function Home() {
               ) : (
                 <div className="space-y-4">
                   {/* Progress Statistics */}
-                  <div className="grid grid-cols-3 gap-4 p-4 bg-slate-50 rounded-lg">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-2 sm:p-4 bg-slate-50 rounded-lg">
                     <div className="text-center">
                       <p className="text-2xl font-bold text-green-600">{successCount}</p>
                       <p className="text-xs text-slate-600">Sucesso</p>
@@ -513,11 +513,11 @@ export default function Home() {
                   </div>
 
                   {/* Progress List */}
-                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                  <div className="space-y-2 max-h-64 sm:max-h-96 overflow-y-auto">
                     {progress.map((item, idx) => (
                       <div
                         key={idx}
-                        className="flex items-start gap-3 p-4 bg-white rounded-lg border border-slate-200"
+                        className="flex flex-col sm:flex-row items-start gap-2 sm:gap-3 p-3 sm:p-4 bg-white rounded-lg border border-slate-200"
                       >
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
